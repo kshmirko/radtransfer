@@ -107,3 +107,8 @@ $(DOBJS)/prepare.o:     $(DSRCRAD)/prepare.f03
 $(DOBJS)/rayleigh.o:     $(DSRCRAD)/rayleigh.f03  
 	@echo $@
 	$(FC) $(FFLAGS) $< -o $@
+
+
+clean:
+	rm objs/*.*
+	rm lib/*.*

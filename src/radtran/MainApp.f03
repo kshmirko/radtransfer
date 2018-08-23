@@ -246,18 +246,19 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FI
 
 end subroutine DO_CALC
 
-subroutine DO_CALC1(r0, r1, npts, wl, mre, mim, gamma, dens, hpbl, taua, numazim, galbedo, theta, nmu, nlays, COUT_FILE) BIND(C)
+subroutine DO_CALC1(r0, r1, npts, wl, mre, mim, gamma, dens, hpbl, taua, numazim, galbedo, theta, nmu, nlays, OUT_FILE) BIND(C)
   use miev0mod
   use iso_c_binding
   implicit none
   real(c_double), intent(in), value     ::  hpbl, taua, galbedo, r0, r1, wl, mre, mim, gamma, dens, theta
   integer(c_int), intent(in), value     ::  numazim, nmu, npts, nlays
   
-  type(c_ptr), target, intent(in)       ::  COUT_FILE
-  character(64), pointer		::  OUT_FILE	
+  !type(c_ptr), target, intent(in)       ::  COUT_FILE
+  !character(len=64), pointer            ::  OUT_FILE
+  character(len=1), intent(in)            ::  OUT_FILE
   type(SDistParams)                     ::  params
   external DO_CALC
-  call c_f_pointer(COUT_FILE, OUT_FILE)
+!  call c_f_pointer(COUT_FILE, OUT_FILE)
   print *, OUT_FILE
   params%r0 = r0
   params%r1 = r1
