@@ -2,7 +2,7 @@ module rayleigh
   use mathutils
   implicit none
   
-  real(kind=dp), parameter  ::  h_mol=8427.3_dp ! m
+  real(kind=dp), parameter  ::  h_mol=8.4273_dp ! m
   real(kind=dp), parameter  ::  h_max=45000.0_dp !m
 contains
   

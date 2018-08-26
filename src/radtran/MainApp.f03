@@ -36,7 +36,7 @@
 ! end program
 
 
-subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FILE) 
+subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, aziorder, OUT_FILE) 
   use miev0mod
   use rayleigh  
   use aerosol
@@ -44,7 +44,7 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FI
   implicit none
 
   real(kind=dp) :: taua, hpbl, galbedo, sza
-  integer                     :: numazim
+  integer                     :: numazim, AZIORDER
   type(SDistParams)           :: params
 
   real(kind=dp) ::  ext, sca, asy, extm, exta, extt,&
@@ -64,7 +64,7 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FI
 
   real(kind=dp)  :: pmom(0:mxmdm,4), evans(0:mxmdm,6), evanstot(0:mxmdm,6)
 
-  INTEGER   NSTOKES, NUMMU, AZIORDER
+  INTEGER   NSTOKES, NUMMU
   PARAMETER(NSTOKES=2)
   INTEGER   NUM_LAYERS, SRC_CODE
   INTEGER   NOUTLEVELS, OUTLEVELS(MAXLAY), NUMAZIMUTHS
@@ -163,8 +163,8 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FI
     HEIGHT(I) = DBLE(NLAYS-I)
     TEMPERATURES(I) = 0.0
     GAS_EXTINCT(I) = 0.0
-    extm = ext_m(params%wl)*dexp(-HEIGHT(I)*1000_dp/(h_mol))
-    exta = taua/hpbl*dexp(-HEIGHT(I)*1000_dp/hpbl)
+    extm = ext_m(params%wl)*dexp(-HEIGHT(I)/(h_mol))
+    exta = taua/hpbl*dexp(-HEIGHT(I)/hpbl)
     extt = exta+extm
     scat = exta*omegaa+extm
     omegat = scat/extt
@@ -175,18 +175,22 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FI
     write(SCAT_FILES(I),'(A,I3.3)') '.scat_file', I
     call write_sca_file(SCAT_FILES(I), extt, scat, evanstot)
     !write(200, '(F6.2,F7.2,E12.5,2X,A1,A13,A1)') HEIGHT(I), 0.0, 0.0, "'",fname,"'"
-    print '(A, F7.1, 3E10.2)', 'C  ',HEIGHT(I), extm, exta, extt
+    print '(A, F7.1, 4E10.2)', 'C  ',HEIGHT(I), extm, exta, extt, h_mol
   END DO
 
   !close(200)
 
   ! deallocate(pmom,  evans, evanstot)
-  
+  ! Атмосфера состоит из N слоев, при этом 
+  ! задается N+1 уровней с разделителем
+  ! Высота H(1) соответствует верхней границе самого высокого слоя
+  ! SCAT_FILES(1) соостветствуют параметрам рассеяния самого верхнего слоя
+  ! Высота H(N+1) соответствует нижней границе самого нижнего слоя
   ! Начало радиационного расчета
   MAX_DELTA_TAU = 1.0E-6  ! Шаг по tau
   
   NUMMU = nmu             ! Число отсчетов на 90 градусах
-  AZIORDER = 2            ! порядок разложения по азимуту
+  !AZIORDER = 2            ! порядок разложения по азимуту
   SRC_CODE = 1            ! тип источника
   QUAD_TYPE = 'G'         ! тип квадратуры
   DELTAM = 'Y'            ! дельта-м масштабирование
@@ -199,9 +203,9 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FI
   GROUND_INDEX = DCMPLX(1.0_dp, 0.0_dp)
   SKY_TEMP = 0.0_dp       ! температура неба
   WAVELENGTH = params%wl  ! длина волны
-  NUM_LAYERS = NLAYS      ! количество слоев
+  NUM_LAYERS = NLAYS-1    ! количество слоев
   NOUTLEVELS = 1          ! количество слоев для вывода
-  OUTLEVELS(1) = NLAYS    ! номер слоя
+  OUTLEVELS(1) = NLAYS-1    ! номер слоя
 
   ! Расчет радиации на нижней границе атмосферы
   CALL RADTRAN (NSTOKES, NUMMU, AZIORDER, MAX_DELTA_TAU,&
@@ -246,12 +250,13 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, OUT_FI
 
 end subroutine DO_CALC
 
-subroutine DO_CALC1(r0, r1, npts, wl, mre, mim, gamma, dens, hpbl, taua, numazim, galbedo, theta, nmu, nlays, OUT_FILE) BIND(C)
+subroutine DO_CALC1(r0, r1, npts, wl, mre, mim, gamma, dens, hpbl, taua, numazim, galbedo, &
+  theta, nmu, nlays, aziorder, OUT_FILE) BIND(C)
   use miev0mod
   use iso_c_binding
   implicit none
   real(c_double), intent(in), value     ::  hpbl, taua, galbedo, r0, r1, wl, mre, mim, gamma, dens, theta
-  integer(c_int), intent(in), value     ::  numazim, nmu, npts, nlays
+  integer(c_int), intent(in), value     ::  numazim, nmu, npts, nlays, aziorder
   
   !type(c_ptr), target, intent(in)       ::  COUT_FILE
   !character(len=64), pointer            ::  OUT_FILE
@@ -268,7 +273,7 @@ subroutine DO_CALC1(r0, r1, npts, wl, mre, mim, gamma, dens, hpbl, taua, numazim
   params%gamma = gamma
   params%dens = dens
   
-  call DO_CALC(params, hpbl, taua, numazim, galbedo, theta, nmu, nlays, OUT_FILE)
+  call DO_CALC(params, hpbl, taua, numazim, galbedo, theta, nmu, nlays, aziorder, OUT_FILE)
 
   
 end subroutine DO_CALC1
