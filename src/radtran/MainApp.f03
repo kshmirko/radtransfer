@@ -155,7 +155,7 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, aziord
   evanstot = (evans*taua+Evans_mol*extm)/extt
   call write_sca_file('.allatm_sca', extt, scat, evanstot)
 
-  !open(200, FILE='atmoslay.lay', status='replace')
+  open(200, FILE='atmoslay.lay', status='replace')
   ! Вычитсяем оптические характеристики для слоев
   ! Сохраняем матрицы рассеяния
   print '(A, A7,3A10)', 'C  ','H, km', 'am, 1/km', 'aa, 1/km', 'at, 1/km'
@@ -174,11 +174,11 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, aziord
     
     write(SCAT_FILES(I),'(A,I3.3)') '.scat_file', I
     call write_sca_file(SCAT_FILES(I), extt, scat, evanstot)
-    !write(200, '(F6.2,F7.2,E12.5,2X,A1,A13,A1)') HEIGHT(I), 0.0, 0.0, "'",fname,"'"
+    write(200, '(F6.2,F7.2,E12.5,2X,A1,A13,A1)') HEIGHT(I), 0.0, 0.0, "'",SCAT_FILES(I),"'"
     print '(A, F7.1, 4E10.2)', 'C  ',HEIGHT(I), extm, exta, extt, h_mol
   END DO
 
-  !close(200)
+  close(200)
 
   ! deallocate(pmom,  evans, evanstot)
   ! Атмосфера состоит из N слоев, при этом 
@@ -193,7 +193,7 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, aziord
   !AZIORDER = 2            ! порядок разложения по азимуту
   SRC_CODE = 1            ! тип источника
   QUAD_TYPE = 'G'         ! тип квадратуры
-  DELTAM = 'Y'            ! дельта-м масштабирование
+  DELTAM = 'N'            ! дельта-м масштабирование
   DIRECT_FLUX = 1.0_dp    ! поток радиации на верхней границе атмосфере
   THETA = sza             ! зенитный угол солнца
   DIRECT_MU = DABS(DCOS(0.017453292D0*(THETA)))
@@ -205,7 +205,7 @@ subroutine DO_CALC(params, hpbl, taua, numazim, galbedo, sza, nmu, nlays, aziord
   WAVELENGTH = params%wl  ! длина волны
   NUM_LAYERS = NLAYS-1    ! количество слоев
   NOUTLEVELS = 1          ! количество слоев для вывода
-  OUTLEVELS(1) = NLAYS-1    ! номер слоя
+  OUTLEVELS(1) = NLAYS    ! номер слоя
 
   ! Расчет радиации на нижней границе атмосферы
   CALL RADTRAN (NSTOKES, NUMMU, AZIORDER, MAX_DELTA_TAU,&
